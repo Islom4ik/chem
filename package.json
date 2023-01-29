@@ -1,0 +1,22 @@
+{
+  "name": "nana",
+  "version": "0.0.1",
+  "description": "neuro NANA - chat bot for telegram. Technology LSTM",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js",
+    "ato": "nodemon index.js"
+  },
+  "keywords": [
+    "neuro",
+    "ai"
+  ],
+  "author": "OG_DIMES",
+  "license": "ISC",
+  "dependencies": {
+    "@chemistry/elements": "^2.9.0",
+    "dotenv": "^16.0.3",
+    "mendeleev": "^1.2.2",
+    "telegraf": "^4.11.2"
+  }
+}
