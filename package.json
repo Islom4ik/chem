@@ -4,7 +4,7 @@
   "description": "neuro NANA - chat bot for telegram. Technology LSTM",
   "main": "index.js",
   "scripts": {
-    "test": "node index.js",
+    "start": "node index.js",
     "ato": "nodemon index.js"
   },
   "keywords": [
