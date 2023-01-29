@@ -112,7 +112,8 @@ getgroup.on('text', async ctx => {
         }
         const str = await newarr.join('\n\n')
         await setTimeout(async () => {
-            return await ctx.reply(str)
+            await ctx.reply(str)
+            return await ctx.scene.leave('getgroup')
         }, 2000);
     } catch (e) {
         return console.error(e);
