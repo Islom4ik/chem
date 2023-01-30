@@ -31,7 +31,7 @@ calcmass.on('text', async ctx => {
         const formull = await new Compound(forml.elements)
         const mass = await formull.getMass();
         await setTimeout(async () => {
-            await ctx.reply(`🟢 Here is the mass of <b>${myString}</b>: <code>${mass}</code>g. Round answer: <code>${Math.floor(mass)}</code>g\n\nEnter the command /calc_mass to calculate the mass of another element.`, {parse_mode: "HTML"})
+            await ctx.reply(`🟢 Here is the mass of <b>${myString}</b>: <code>${mass}</code>g. Round answer: <code>${Math.round(mass)}</code>g\n\nEnter the command /calc_mass to calculate the mass of another element.`, {parse_mode: "HTML"})
             return ctx.scene.leave('calcmass') 
         }, 1000);
     } catch (e) {
