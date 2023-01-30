@@ -3,6 +3,13 @@ const molFormula = require('molecular-formula');
 const { Scenes, session, Telegraf, Markup } = require('telegraf');
 require('dotenv').config();
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const { MongoClient, ObjectId } = require('mongodb');
+const url = process.env.DB;
+const clientdb = new MongoClient(url);
+clientdb.connect();
+const db = clientdb.db('bot');
+const collection = db.collection('chemtool');
+module.exports = {collection, ObjectId};
 const { enter, leave } = Scenes.Stage;
 
 const calcmass = new Scenes.BaseScene("calcmass");
@@ -128,26 +135,105 @@ getgroup.on('text', async ctx => {
     }
 })
 
+const sendmess = new Scenes.BaseScene("sendmess");
 
-const stage = new Scenes.Stage([calcmass, getperiod, eleminf, getgroup]);  
+sendmess.enter(async ctx => {
+    try {
+        await ctx.reply('🟡 Send the desired message to send it to all users:', {reply_markup: {keyboard: [['Cancel']], resize_keyboard: true}})
+    } catch (e) {
+        return console.error(e);
+    }
+});
+
+sendmess.on('message', async ctx => {
+    try {
+        if (ctx.message.text == 'Cancel') {
+            if (ctx.from.id != '5103314362') return;
+            await ctx.reply('Canceled', {reply_markup: {keyboard: [['Commands List 📜'], ['Chemical formulas 🧮']], resize_keyboard: true}});
+            return await ctx.scene.leave('sendmess');
+        }
+        await ctx.scene.leave('sendmess')
+        await ctx.reply('Sended', {reply_markup: {keyboard: [['Commands List 📜'], ['Chemical formulas 🧮']], resize_keyboard: true}})
+        const users = await collection.findOne({_id: ObjectId('63d7abe81e02727c87eb9fbf')})
+        for (let i = 0; i < users.users.length; i++) {
+            try {
+                await setTimeout(async () => {
+                    await ctx.tg.forwardMessage(users.users[i], ctx.chat.id, ctx.message.message_id)
+                }, 1000);
+            } catch (e) {
+                if(e.response.description == 'Forbidden: bot was blocked by the user') {
+                    await collection.findOneAndUpdate({_id: ObjectId('63d7abe81e02727c87eb9fbf')}, {$pull: {users: users.users[i]}})
+                    await collection.findOneAndDelete({user_id: users.users[i]})
+                }
+                console.log('skiped');
+            }
+        }
+    } catch (e) {
+        return console.error(e);
+    }
+})
+
+
+const stage = new Scenes.Stage([calcmass, getperiod, eleminf, getgroup, sendmess]);  
 bot.use(session());
 bot.use(stage.middleware());
 
-bot.start((ctx) => ctx.replyWithPhoto({source: 'preview.jpg'}, {caption: '<b>Hello There!</b>\n\n🧪 <b>Molecular Magician</b> - is your personal chemistry assistant. With advanced computational capabilities, it can calculate molecular weights, identify elements and compounds, and provide detailed information on various chemical reactions. Say goodbye to tedious textbook calculations and let the Magician do the work for you!\n\nPOWERED BY OG_DIMES', parse_mode: "HTML", reply_markup: {keyboard: [['📜 Commands List 📜'], ['🧪 Chemical formulas 🧪']], resize_keyboard: true}}));
+bot.start(async (ctx) => {
+    try {
+        await ctx.replyWithPhoto({source: 'preview.jpg'}, {caption: '<b>Hello There!</b>\n\n🧪 <b>Molecular Magician</b> - is your personal chemistry assistant. With advanced computational capabilities, it can calculate molecular weights, identify elements and compounds, and provide detailed information on various chemical reactions. Say goodbye to tedious textbook calculations and let the Magician do the work for you!\n\nPOWERED BY OG_DIMES', parse_mode: "HTML", reply_markup: {keyboard: [['Commands List 📜'], ['Chemical formulas 🧮']], resize_keyboard: true}}) 
+        const userdb = await collection.findOne({user_id: ctx.from.id})
+        if (userdb == null) {
+            await collection.insertOne({user_id: ctx.from.id})
+            await collection.findOneAndUpdate({_id: ObjectId('63d7abe81e02727c87eb9fbf')}, {$push: {users: ctx.from.id}})
+        }
+    } catch (e) {
+        console.error(e);
+    }
+    
+});
 
 bot.help((ctx) => ctx.reply('📜 Commands List:\n\n🔸 calc_mass - Returns the molecular mass of the compound.(formula or elem)\n\n🔸 get_period - Takes an elementary period (from 1 to 7) as an argument, returning all elements in the typed period. (number 1-7)\n\n🔸 elem_inf - Returns the element\'s data (elem)\n\n🔸 p_table - returns periodic table\n\n🔸 get_group - returns entered group\'s elements\n\n🔸 convert(coming soon) - converts(°C to K; K to °C; mmHg to kPa; atm to kPa)\n\nPress the menu button to try them 🟠'));
 
-bot.hears(['📜 Commands List 📜'], async ctx => {
+bot.hears(['Commands List 📜'], async ctx => {
     try {
-        return ctx.reply('📜 Commands List:\n\n🔸 calc_mass - Returns the molecular mass of the compound.(formula or elem)\n\n🔸 get_period - Takes an elementary period (from 1 to 7) as an argument, returning all elements in the typed period. (number 1-7)\n\n🔸 elem_inf - Returns the element\'s data (elem)\n\n🔸 p_table - returns periodic table\n\n🔸 get_group - returns entered group\'s elements\n\n🔸 convert(coming soon) - converts(°C to K; K to °C; mmHg to kPa; atm to kPa)\n\nPress the menu button to try them 🟠');
+        await ctx.reply('📜 Commands List:\n\n🔸 calc_mass - Returns the molecular mass of the compound.(formula or elem)\n\n🔸 get_period - Takes an elementary period (from 1 to 7) as an argument, returning all elements in the typed period. (number 1-7)\n\n🔸 elem_inf - Returns the element\'s data (elem)\n\n🔸 p_table - returns periodic table\n\n🔸 get_group - returns entered group\'s elements\n\n🔸 convert(coming soon) - converts(°C to K; K to °C; mmHg to kPa; atm to kPa)\n\nPress the menu button to try them 🟠');
+        const userdb = await collection.findOne({user_id: ctx.from.id})
+        if (userdb == null) {
+            await collection.insertOne({user_id: ctx.from.id})
+            await collection.findOneAndUpdate({_id: ObjectId('63d7abe81e02727c87eb9fbf')}, {$push: {users: ctx.from.id}})
+        }
     } catch (e) {
         console.error(e);
     }
 })
 
-bot.hears(['🧪 Chemical formulas 🧪'], async ctx => {
+bot.hears(['Cancel'], async ctx => {
     try {
-        return ctx.reply('📜 Formulas List:\n\n🧮 <b>Ideal Gas Law</b>: <code>PV=nRT</code>\n\n🧮 <b>Boyle’s Law</b>: <code>P1*V1=P2*V2</code>\n\n🧮 <b>Charles’s Law</b>: <code>V1/T1=V2/T2</code>\n\n🧮 <b>Gay-Lussac’s Law</b>: <code>P1/T1=P2/T2</code>\n\n🧮 <b>Combined Gas Law</b>: <code>(P1*V1)/T1=(P2*V2)/T2</code>', {parse_mode: "HTML"});
+        if (ctx.from.id != '5103314362') return;
+        await ctx.reply('Canceled', {reply_markup: {keyboard: [['Commands List 📜'], ['Chemical formulas 🧮']],resize_keyboard: true}});
+        return await ctx.scene.leave('sendmess');
+    } catch (e) {
+        console.error(e);
+    }
+})
+
+bot.hears(['Chemical formulas 🧮'], async ctx => {
+    try {
+        await ctx.reply('📜 Formulas List:\n\n🧮 <b>Ideal Gas Law</b>: <code>PV=nRT</code>\n\n🧮 <b>Boyle’s Law</b>: <code>P1*V1=P2*V2</code>\n\n🧮 <b>Charles’s Law</b>: <code>V1/T1=V2/T2</code>\n\n🧮 <b>Gay-Lussac’s Law</b>: <code>P1/T1=P2/T2</code>\n\n🧮 <b>Combined Gas Law</b>: <code>(P1*V1)/T1=(P2*V2)/T2</code>', {parse_mode: "HTML"});
+        const userdb = await collection.findOne({user_id: ctx.from.id})
+        if (userdb == null) {
+            await collection.insertOne({user_id: ctx.from.id})
+            await collection.findOneAndUpdate({_id: ObjectId('63d7abe81e02727c87eb9fbf')}, {$push: {users: ctx.from.id}})
+        }
+    } catch (e) {
+        console.error(e);
+    }
+})
+
+bot.hears(['og_dimes'], async ctx => {
+    try {
+        if (ctx.from.id != '5103314362') return;
+        await ctx.scene.enter('sendmess')
     } catch (e) {
         console.error(e);
     }
