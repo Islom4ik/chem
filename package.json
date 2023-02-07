@@ -18,6 +18,7 @@
     "dotenv": "^16.0.3",
     "mendeleev": "^1.2.2",
     "molecular-formula": "^1.1.5",
+    "molecules.js": "^1.1.0",
     "mongodb": "^4.13.0",
     "nodemon": "^2.0.20",
     "telegraf": "^4.11.2"

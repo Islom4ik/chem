@@ -9,37 +9,46 @@ const clientdb = new MongoClient(url);
 clientdb.connect();
 const db = clientdb.db('bot');
 const collection = db.collection('chemtool');
+const Molecules = require('molecules.js');
+const mc = new Molecules();
 module.exports = {collection, ObjectId};
 const { enter, leave } = Scenes.Stage;
 
 const calcmass = new Scenes.BaseScene("calcmass");
 calcmass.enter(async ctx => {
     try {
-        return ctx.reply('🔹 Note: Maintain correct elements spelling. Example: Writing "CL (Chlorine)" is incorrect; "Cl" is correct.\n\nEnter formula(example: AgNO3 or Ag N O3):')
+        return await ctx.reply('🔹 Note: Maintain correct elements spelling. Example: Writing "CL (Chlorine)" is incorrect; "Cl" is correct.\n\nEnter formula(example: AgNO3 or Ag N O3):', {reply_markup: {keyboard: [['Back to menu ↩️']], resize_keyboard: true}})
     } catch (e) {
         console.error(e);
     }
 });
 
+// const fr = new molFormula(stringer);
+// const formula = fr.simplifiedFormula;
+// const elementList = await Utility.stringToElementList(formula);
+// const forml = await new Compound(elementList);
+
 calcmass.on('text', async ctx => {
     try {
+        if(ctx.message.text == 'Back to menu ↩️') {
+            await ctx.reply('Main menu 🏠', {reply_markup: {keyboard: [['Commands List 📜'], ['Chemical formulas 🧮']], resize_keyboard: true}})
+            return await ctx.scene.leave('calcmass')
+        }
         const myString = ctx.message.text;
-        const searchString = /[\_\!\@\#\№\"\;\$\%\^\:\&\?\*\{\}\[\]\?\/\.,\\\|\/\+\-\=]+/g;
+        const searchString = /[\_\!\@\#\№\"\;\$\%\^\:\&\?\*\{\}\[\]\?\/\,\\\|\/\+\-\=]+/g;
         
         if (myString.match(searchString)) return await ctx.reply('⚠️ Please enter the chemical formula according to the given example:');
 
         await ctx.reply('Computing...')
         const stringer = myString;
-        const fr = new molFormula(stringer);
-        const formula = fr.simplifiedFormula;
-        const elementList = await Utility.stringToElementList(formula);
-        const forml = await new Compound(elementList);
+        const fr = mc.getMolecules(ctx.message.text);
+        const forml = await new Compound(fr);
         
         const formull = await new Compound(forml.elements)
         const mass = await formull.getMass();
         await setTimeout(async () => {
             await ctx.reply(`🟢 Here is the mass of <b>${myString}</b>: <code>${mass}</code>g. Round answer: <code>${Math.round(mass)}</code>g\n\nEnter the command /calc_mass to calculate the mass of another element.`, {parse_mode: "HTML"})
-            return ctx.scene.leave('calcmass') 
+            return ctx.scene.enter('calcmass') 
         }, 1000);
     } catch (e) {
         await ctx.reply('⛔️ An error has occurred. The elements you entered may not have been found.\n\nNote: Maintain correct elements spelling. Example: Writing "CL (Chlorine)" is incorrect; "Cl" is correct.\nEnter again:')
